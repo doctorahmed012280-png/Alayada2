@@ -306,6 +306,89 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
 .info-table tr:last-child th, .info-table tr:last-child td { border-bottom:none; }
 .info-table .name-cell { font-family:'Cairo',sans-serif; font-weight:800; font-size:1.1rem; color:var(--primary-d); }
 
+/* ---- Case-file header strip ---- */
+.patient-strip { display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px; }
+.patient-strip .ps-name {
+  font-family:'Cairo',sans-serif; font-weight:800; font-size:1.25rem; color:var(--primary-d);
+  padding-inline-end:22px; border-inline-end:2px solid var(--line); line-height:1.3;
+}
+.patient-strip .ps-item { display:flex; align-items:baseline; gap:6px; font-size:.92rem; min-width:0; }
+.patient-strip .ps-item > span { color:var(--ink-soft); font-size:.8rem; font-weight:600; white-space:nowrap; }
+.patient-strip .ps-item > b { font-weight:700; word-break:break-word; }
+#c-extra-fields { display:contents; }
+#c-profile-fields {
+  flex:1 1 100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(105px,1fr));
+  gap:10px 16px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line);
+}
+#c-profile-fields:empty { display:none; }
+#c-profile-fields .ps-item { gap:7px; font-size:.95rem; }
+#c-profile-fields .ps-item > span { font-size:.82rem; }
+@media (min-width:700px) { #c-profile-fields { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); } }
+.ps-edit-btn { flex:1 1 100%; justify-content:center; margin-top:12px; }
+.ps-attach-btn { flex-shrink:0; gap:4px; }
+.ps-attach-count { display:inline-flex; align-items:center; justify-content:center; min-width:19px; height:19px;
+  padding:0 5px; border-radius:999px; background:rgba(255,255,255,.28); font-size:.75rem; font-weight:800; }
+.ps-attach-count:empty { display:none; }
+.ps-attach-count.pending { background:var(--accent); }
+@media (max-width:620px) {
+  .patient-strip .ps-name { width:100%; border-inline-end:none; padding-inline-end:0;
+    border-bottom:1px solid var(--line); padding-bottom:8px; }
+}
+
+/* ---- البيانات الأولية grid (label -> value cards) ---- */
+.metrics-hint { width:100%; margin:0; color:var(--ink-soft); font-size:.8rem; }
+.cf-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+@media (min-width:700px) { .cf-grid { grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:8px; } }
+.cf-grid .custom-field-row {
+  display:flex !important; flex-wrap:nowrap; align-items:center; gap:3px !important; min-width:0;
+  background:#FBF9F4; border:1px solid var(--line); border-radius:var(--radius-sm); padding:4px; margin:0;
+}
+.cf-grid .custom-field-row .field { margin-bottom:0; gap:0; min-width:0; }
+.cf-grid .custom-field-row .field label { display:none; }
+.cf-grid .cf-label, .cf-grid .cf-value { padding:5px 4px; font-size:.85rem; background:#fff; text-align:center; }
+.cf-grid .custom-field-input-wrap:first-of-type { flex:1 1 50%; min-width:0; }
+.cf-grid .custom-field-input-wrap:nth-of-type(2) { flex:1 1 50%; min-width:0; }
+.cf-grid .cf-label { font-weight:600; }
+.cf-grid .cf-value { font-weight:700; }
+.cf-grid .cf-pin-wrap { padding-bottom:0; flex:0 0 auto; gap:0; font-size:.7rem; }
+.cf-grid .cf-pin-wrap span { display:none; }
+.cf-grid .cf-pin-wrap input { width:13px; height:13px; }
+.cf-grid .cf-remove { flex:0 0 auto; padding:0 3px; font-size:.75rem; border:none; background:transparent; color:var(--st-cancelled); }
+.cf-grid:empty { display:none; }
+/* Roomy one-per-row layout inside the edit modal (phones), two columns on wide screens */
+#cp-cf-list { grid-template-columns:1fr; gap:8px; }
+@media (min-width:700px) { #cp-cf-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+#cp-cf-list .custom-field-row { gap:6px !important; padding:6px; }
+#cp-cf-list .custom-field-input-wrap:first-of-type { flex:0 0 34%; }
+#cp-cf-list .custom-field-input-wrap:nth-of-type(2) { flex:1 1 auto; }
+#cp-cf-list .cf-label, #cp-cf-list .cf-value { padding:10px 8px; font-size:16px; }
+#cp-cf-list .cf-value { text-align:start; }
+#cp-cf-list .cf-pin-wrap input { width:17px; height:17px; }
+#cp-cf-list .cf-remove { padding:0 6px; font-size:1rem; }
+/* Per-معطى colouring */
+.cf-style-btn { flex:0 0 auto; width:24px; height:24px; border-radius:6px; border:1px solid var(--line);
+  background:#fff; cursor:pointer; font-weight:800; font-size:.8rem; line-height:1; padding:0; }
+.style-preview { border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px; text-align:center;
+  font-weight:800; font-size:1.05rem; margin-bottom:14px; background:#fff; }
+.style-color-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.style-color-row input[type="color"] { width:52px; height:36px; padding:0; border:1px solid var(--line);
+  border-radius:var(--radius-sm); background:#fff; cursor:pointer; }
+.style-color-row label { flex:1; font-size:.9rem; }
+
+/* ---- Visit-timeline toolbar: sort arrow + Excel-style filter button ---- */
+.timeline-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+.timeline-head h3 { margin:0; }
+.timeline-tools { display:flex; gap:6px; }
+.tl-icon-btn { display:inline-flex; align-items:center; justify-content:center; gap:2px;
+  min-width:32px; height:30px; padding:0 7px; cursor:pointer; font-size:.9rem; font-weight:700;
+  color:var(--ink-soft); background:#FBF9F4; border:1px solid var(--line); border-radius:var(--radius-sm); }
+.tl-icon-btn:hover { background:#F0EBDD; color:var(--ink); }
+.tl-icon-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+.tl-caret { font-size:.65rem; line-height:1; }
+.timeline-filter { border:1px solid var(--line); border-radius:var(--radius-sm); background:#FBF9F4; padding:12px; margin-bottom:12px; }
+.tl-summary { margin:0 0 10px; font-size:.8rem; color:var(--ink-soft); }
+.tl-summary:empty { display:none; }
+
 /* Clinical profile summary block sitting above the visit timeline */
 .clinical-profile-box { margin-bottom:16px; }
 .clinical-profile-box .empty-state { padding:16px 10px; }
@@ -688,34 +771,60 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
     <section id="doc-view-chart" style="display:none;">
       <div id="chart-empty" class="panel empty-state"><div class="icon">🩺</div>اختاري حالة من الدور، أو ابحثي عنها بالأعلى لفتح ملفها</div>
       <div id="chart-content" style="display:none;">
+        <!-- Case-file header: the patient's basic data AND her البيانات
+             الأولية all read as one inline block. Editing happens in the
+             modal opened by #c-profile-edit-btn, so nothing here is a form. -->
         <div class="panel">
-          <table class="info-table">
-            <tbody>
-              <tr><th>الاسم</th><td class="name-cell" id="c-name">—</td></tr>
-              <tr><th>الهاتف</th><td class="mono" id="c-phone">—</td></tr>
-              <tr><th>العمر</th><td id="c-age">—</td></tr>
-              <tr><th>رقم الملف</th><td class="mono" id="c-file-no">—</td></tr>
-              <tr><th>فصيلة الدم</th><td id="c-blood">—</td></tr>
-              <tr><th>العنوان</th><td id="c-address">—</td></tr>
-            </tbody>
-            <tbody id="c-extra-fields"></tbody>
-          </table>
-        </div>
-        <div class="panel attachments-nav-card">
-          <div class="attachments-nav-info">
-            <span class="attachments-nav-icon">📎</span>
-            <div style="min-width:0;">
-              <h3 style="margin:0;">الروشتات والتحاليل</h3>
-              <p id="c-attachments-count-label" style="margin:2px 0 0;color:var(--ink-soft);font-size:.85rem;">—</p>
-            </div>
+          <div class="patient-strip">
+            <div class="ps-name" id="c-name">—</div>
+            <button type="button" class="btn btn-primary btn-sm ps-attach-btn" id="c-attachments-open-btn">
+              📎 الروشتات<span class="ps-attach-count" id="c-attachments-count-label"></span>
+            </button>
+            <div class="ps-item"><span>الهاتف</span><b class="mono" id="c-phone">—</b></div>
+            <div class="ps-item"><span>العمر</span><b id="c-age">—</b></div>
+            <div class="ps-item"><span>رقم الملف</span><b class="mono" id="c-file-no">—</b></div>
+            <div class="ps-item"><span>فصيلة الدم</span><b id="c-blood">—</b></div>
+            <div class="ps-item"><span>العنوان</span><b id="c-address">—</b></div>
+            <div id="c-extra-fields"></div>
+            <div id="c-profile-fields"></div>
+            <button type="button" class="btn btn-ghost btn-sm ps-edit-btn" id="c-profile-edit-btn">✎ تعديل البيانات الأولية</button>
           </div>
-          <button type="button" class="btn btn-primary btn-sm" id="c-attachments-open-btn">فتح صفحة الملفات ←</button>
         </div>
         <div class="grid-2">
           <div class="panel">
-            <h3>السجل التاريخي للزيارات</h3>
-            <input id="hist-search" placeholder="🔍 بحث داخل زيارات هذا المريض (ملاحظة، تشخيص، دواء...)"
-              style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);margin-bottom:10px;">
+            <div class="timeline-head">
+              <h3>السجل التاريخي للزيارات</h3>
+              <div class="timeline-tools">
+                <button type="button" class="tl-icon-btn" id="tl-sort-btn" title="ترتيب: الأحدث أولًا">
+                  <span id="tl-sort-icon">↓</span>
+                </button>
+                <button type="button" class="tl-icon-btn tl-filter-btn" id="tl-filter-btn" title="فلتر وبحث">
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M1.5 2h13a.5.5 0 0 1 .38.82L10 9v4.2a.5.5 0 0 1-.28.45l-3 1.5A.5.5 0 0 1 6 14.7V9L1.12 2.82A.5.5 0 0 1 1.5 2z"/></svg>
+                  <span class="tl-caret">▾</span>
+                </button>
+              </div>
+            </div>
+            <div class="timeline-filter" id="tl-filter-panel" style="display:none;">
+              <div class="field" style="margin-bottom:10px;"><label for="tl-q">بحث في السجل</label>
+                <input id="tl-q" placeholder="أي كلمة في الملاحظات أو التشخيص أو الدواء..." autocomplete="off"></div>
+              <div class="field" style="margin-bottom:10px;"><label for="tl-range">المدة</label>
+                <select id="tl-range">
+                  <option value="all">الكل</option>
+                  <option value="day">النهاردة</option>
+                  <option value="month">الشهر الحالي</option>
+                  <option value="year">السنة الحالية</option>
+                  <option value="custom">مدة محددة</option>
+                </select></div>
+              <div class="field-row" id="tl-custom-range" style="display:none;">
+                <div class="field"><label for="tl-from">من</label><input type="date" id="tl-from"></div>
+                <div class="field"><label for="tl-to">إلى</label><input type="date" id="tl-to"></div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-primary btn-sm" id="tl-apply-btn" style="flex:1;justify-content:center;">تطبيق</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="tl-clear-btn">مسح الفلتر</button>
+              </div>
+            </div>
+            <p class="tl-summary" id="tl-summary"></p>
             <div class="allergy-banner" id="c-allergy-banner"><span class="ab-title">⚠️ حساسية دوائية</span><span id="c-allergy-text"></span></div>
             <div class="clinical-profile-box" id="c-clinical-profile"></div>
             <div id="c-vitals-trends"></div>
@@ -725,9 +834,6 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:2px;">
               <h3 style="margin:0;">كشف جديد</h3>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button type="button" class="btn btn-ghost btn-sm" id="v-clinical-profile-btn">
-                  <span id="v-clinical-profile-summary">+ بيانات أولية / أمراض مزمنة</span>
-                </button>
                 <button type="button" class="btn btn-ghost btn-sm" id="v-next-visit-btn">
                   <span id="v-next-visit-summary">+ موعد الزيارة القادمة</span>
                 </button>
@@ -773,9 +879,8 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
               <button type="button" class="btn btn-ghost btn-sm" id="lab-print-btn">🖨️ طباعة الطلب</button></div>
             <div id="lab-list"></div>
             <button type="button" class="btn btn-ghost btn-sm" id="lab-add" style="margin-bottom:12px;">+ إضافة طلب</button>
-            <div class="field"><label>بيانات إضافية (اختياري)</label></div>
-            <div id="v-cf-list"></div>
-            <button type="button" class="btn btn-ghost btn-sm" id="v-cf-add" style="margin-bottom:12px;">+ إضافة حقل</button>
+            <!-- البيانات الأولية live on the patient's file (header block,
+                 edited from #c-profile-edit-btn) — not per visit. -->
             <button class="btn btn-primary" id="v-complete-btn">حفظ الكشف وإنهاء الزيارة</button>
           </div>
         </div>
@@ -1077,7 +1182,7 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
         </div>
         <div class="field"><label>الشارع/تفاصيل العنوان (اختياري)</label><input id="np-street" placeholder="اسم الشارع ورقم العقار"></div>
         <button type="button" class="btn btn-ghost btn-sm" id="np-clinical-profile-btn" style="margin-bottom:14px;">
-          <span id="np-clinical-profile-summary">+ بيانات أولية / أمراض مزمنة</span>
+          <span id="np-clinical-profile-summary">+ البيانات الأولية</span>
         </button>
         <div class="field"><label>بيانات إضافية (اختياري)</label></div>
         <div id="np-cf-list"></div>
@@ -1099,21 +1204,48 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
     <div class="modal-overlay" id="modal-clinical-profile">
       <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-clinical-profile-title">
         <div class="modal-box-header">
-          <h3 id="modal-clinical-profile-title">بيانات أولية / أمراض مزمنة</h3>
+          <h3 id="modal-clinical-profile-title">البيانات الأولية</h3>
           <button type="button" class="modal-close-btn" aria-label="إغلاق">✕</button>
         </div>
-        <div class="field"><label for="cp-chronic">الأمراض المزمنة</label>
-          <textarea id="cp-chronic" rows="3" placeholder="مثال: سكر، ضغط..."></textarea></div>
-        <div class="field"><label for="cp-meds">الأدوية المستمرة</label>
-          <textarea id="cp-meds" rows="3" placeholder="مثال: ميتفورمين 500، كونكور 5..."></textarea></div>
         <div class="field"><label for="cp-allergies" style="color:#A94442;font-weight:700;">⚠️ الحساسية الدوائية</label>
           <textarea id="cp-allergies" rows="2" placeholder="مثال: بنسلين، أسبرين، سلفا — افصلي بينهم بفاصلة"></textarea>
           <small style="color:var(--ink-soft);font-size:.75rem;">هتظهر كتحذير أحمر ثابت في ملف المريض، والبرنامج هيحذّرك لو كتبتي دواء متعارض معاها.</small></div>
-        <div id="cp-cf-list"></div>
-        <button type="button" class="btn btn-ghost btn-sm" id="cp-cf-add" style="margin-bottom:12px;">+ إضافة حقل</button>
+        <p class="metrics-hint" style="margin:12px 0;">المعطيات اللي هنا محفوظة دائمًا وبتظهر مع كل حالة لحد ما تتمسح من هنا. زرار A جنب كل معطى بيغيّر لونه والهاي لايت بتاعه.</p>
+        <div id="cp-cf-list" class="cf-grid"></div>
+        <button type="button" class="btn btn-ghost btn-sm" id="cp-cf-add" style="margin:12px 0;">+ إضافة معطى</button>
         <div class="error-msg" id="cp-error"></div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button type="button" class="btn btn-primary" id="cp-save-btn" style="flex:1;justify-content:center;">حفظ البيانات الأولية</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SHARED MODAL: colour + highlight for one معطى ===== -->
+    <div class="modal-overlay" id="modal-field-style">
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-field-style-title">
+        <div class="modal-box-header">
+          <h3 id="modal-field-style-title">لون المعطى</h3>
+          <button type="button" class="modal-close-btn" aria-label="إغلاق">✕</button>
+        </div>
+        <div class="style-preview" id="fs-preview">معاينة</div>
+        <div class="style-color-row">
+          <input type="checkbox" id="fs-color-on" style="width:auto;">
+          <label for="fs-color-on">لون الخط</label>
+          <input type="color" id="fs-color" value="#B3261E">
+        </div>
+        <div class="style-color-row">
+          <input type="checkbox" id="fs-hl-on" style="width:auto;">
+          <label for="fs-hl-on">هاي لايت (لون الخلفية)</label>
+          <input type="color" id="fs-hl" value="#FFF3A3">
+        </div>
+        <div class="field"><label for="fs-scope">يتطبّق على</label>
+          <select id="fs-scope">
+            <option value="one">الحالة دي بس</option>
+            <option value="all">كل الحالات (لون ثابت للمعطى)</option>
+          </select></div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button type="button" class="btn btn-primary" id="fs-apply-btn" style="flex:1;justify-content:center;">تطبيق</button>
+          <button type="button" class="btn btn-ghost" id="fs-clear-btn">مسح التنسيق</button>
         </div>
       </div>
     </div>
@@ -1371,6 +1503,27 @@ function customFieldsAddRow(listId, label = "", value = "", pinned = false) {
   const valueInput = row.querySelector(".cf-value");
   labelInput.value = label;
   valueInput.value = value;
+  /* Grid mode (البيانات الأولية): per-input labels are hidden by CSS to
+     keep each card compact, so hints move into placeholders, the pin
+     becomes an icon, and each row gets its colour swatch. */
+  if (wrap.classList.contains("cf-grid")) {
+    labelInput.placeholder = "اسم المعطى";
+    valueInput.placeholder = "القيمة";
+    const pinWrap = row.querySelector(".cf-pin-wrap");
+    pinWrap.title = "احفظ القيمة دي كقيمة افتراضية تظهر مع الحالات الجديدة (اسم المعطى نفسه محفوظ دائمًا)";
+    pinWrap.insertAdjacentText("beforeend", "📌");
+    row.querySelector(".cf-remove").textContent = "✕";
+    if (wrap.id === "cp-cf-list") {
+      const styleBtn = document.createElement("button");
+      styleBtn.type = "button";
+      styleBtn.className = "cf-style-btn";
+      styleBtn.textContent = "A";
+      styleBtn.title = "لون المعطى والهاي لايت";
+      styleBtn.addEventListener("click", () => openFieldStyleModal(row));
+      row.insertBefore(styleBtn, pinWrap);
+      paintStyleSwatch(row);
+    }
+  }
   row.querySelector(".cf-remove").addEventListener("click", () => row.remove());
   wireCustomFieldSuggestionDropdowns(row, labelInput, valueInput);
   wrap.appendChild(row);
@@ -1388,10 +1541,29 @@ function readCustomFields(listId) {
   return data;
 }
 function clearCustomFields(listId) { document.getElementById(listId).innerHTML = ""; }
-function renderCustomFieldsView(data) {
+/* ---- Colour/highlight per معطى ----
+   Two layers: a clinic-wide colour on the معطى's template entry, and an
+   optional per-patient override on clinicalProfile.fieldStyles. */
+let fieldStyleTemplate = {}; // label -> { color, highlight }
+function resolveFieldStyle(label, overrides) {
+  const tpl = (fieldStyleTemplate && fieldStyleTemplate[label]) || null;
+  const own = (overrides && overrides[label]) || null;
+  const st = { ...(tpl || {}), ...(own || {}) };
+  return (st.color || st.highlight) ? st : null;
+}
+function fieldStyleAttr(label, overrides) {
+  const st = resolveFieldStyle(label, overrides);
+  if (!st) return "";
+  const parts = [];
+  if (st.color) parts.push(`color:${st.color}`);
+  if (st.highlight) parts.push(`background:${st.highlight}`, "padding:1px 6px", "border-radius:6px");
+  return ` style="${parts.join(";")}"`;
+}
+function renderCustomFieldsView(data, overrides) {
   if (!data || !Object.keys(data).length) return "";
   return `<div style="margin-top:6px;font-size:.82rem;color:var(--ink-soft);">` +
-    Object.entries(data).map(([k, v]) => `<div>· <strong>${k}:</strong> ${v}</div>`).join("") +
+    Object.entries(data).map(([k, v]) =>
+      `<div><span${fieldStyleAttr(k, overrides)}>· <strong>${k}:</strong> ${v}</span></div>`).join("") +
     `</div>`;
 }
 
@@ -1425,9 +1597,14 @@ async function loadPinnedFields(formKey) {
 }
 async function savePinnedFields(formKey, labelValueMap) {
   const data = {};
-  Object.entries(labelValueMap).forEach(([label, value]) => {
+  Object.entries(labelValueMap).forEach(([label, entry]) => {
     const key = slugifyFieldKey(label);
-    if (key) data[key] = { label, value };
+    if (!key) return;
+    /* entry is either a plain default value (other forms) or
+       { value, color, highlight } for the البيانات الأولية template. */
+    data[key] = (entry && typeof entry === "object")
+      ? { label, value: entry.value || "", ...(entry.color ? { color: entry.color } : {}), ...(entry.highlight ? { highlight: entry.highlight } : {}) }
+      : { label, value: entry };
   });
   try { await set(ref(db, t(`pinnedFields/${formKey}`)), data); }
   catch (err) { console.error("تعذّر حفظ الحقول المثبّتة", err); }
@@ -3537,7 +3714,8 @@ async function openPatientChart(patientId, queueId) {
   document.getElementById("c-blood").textContent = patient.bloodType ?? "—";
   document.getElementById("c-address").textContent = displayAddress(patient);
   const extraEntries = Object.entries(patient.customFields || {}).filter(([, v]) => v);
-  document.getElementById("c-extra-fields").innerHTML = extraEntries.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("");
+  document.getElementById("c-extra-fields").innerHTML = extraEntries
+    .map(([k, v]) => `<div class="ps-item"${fieldStyleAttr(k, null)}><span>${k}</span><b>${v}</b></div>`).join("");
 
   unsubs.push(wireAttachmentsNavCard(patientId));
 
@@ -3546,8 +3724,7 @@ async function openPatientChart(patientId, queueId) {
   document.getElementById("v-next-visit-note").value = "";
   resetClinicalV2ForPatient();
   refreshNextVisitSummary();
-  clearCustomFields("v-cf-list");
-  populatePinnedFieldRows("v-cf-list", "v");
+  resetTimelineToolbar();
   document.getElementById("vi-label").value = "سونار";
   document.getElementById("vi-amount").value = "0";
   document.getElementById("vi-discount-type").value = "none";
@@ -3557,9 +3734,11 @@ async function openPatientChart(patientId, queueId) {
   refreshExamInvoicePricing();
   unsubs.push(subscribePatientTimeline(patientId, renderTimeline));
   currentClinicalProfile = null;
+  renderProfileStrip(null);
   unsubs.push(subscribePatientClinicalProfile(patientId, (data) => {
     currentClinicalProfile = data || null;
     renderClinicalProfile(currentClinicalProfile);
+    renderProfileStrip(currentClinicalProfile);
   }));
 }
 
@@ -3668,40 +3847,38 @@ function allergyTokens(data) {
 }
 function renderClinicalProfile(data) {
   const box = document.getElementById("c-clinical-profile");
-  const customEntries = data && data.customFields ? Object.entries(data.customFields).filter(([, v]) => v) : [];
   renderAllergyBanners(data);
-  const hasData = !!(data && (data.chronicConditions || data.ongoingMedications || data.allergies || customEntries.length));
-  if (!hasData) {
-    box.innerHTML = `<div class="empty-state"><div class="icon">📋</div>لا توجد بيانات أولية مسجّلة بعد لهذا المريض</div>`;
-    return;
-  }
+  /* The معطيات themselves are shown (and edited) in the case-file header
+     now, so this block only carries the allergy line and any legacy
+     chronic/medication text saved before that redesign. */
+  const alg0 = allergiesTextOf(data);
+  if (!data || !(data.chronicConditions || data.ongoingMedications || alg0)) { box.innerHTML = ""; return; }
   const rows = [];
   if (data.chronicConditions) rows.push(`<tr><th>الأمراض المزمنة</th><td>${data.chronicConditions.replace(/\n/g, "<br>")}</td></tr>`);
   if (data.ongoingMedications) rows.push(`<tr><th>الأدوية المستمرة</th><td>${data.ongoingMedications.replace(/\n/g, "<br>")}</td></tr>`);
-  const alg = allergiesTextOf(data);
-  if (alg) rows.push(`<tr><th style="color:#A94442">⚠️ حساسية</th><td style="color:#A94442;font-weight:700">${alg.replace(/\n/g, "<br>")}</td></tr>`);
-  customEntries.forEach(([k, v]) => rows.push(`<tr><th>${k}</th><td>${v}</td></tr>`));
+  if (alg0) rows.push(`<tr><th style="color:#A94442">⚠️ حساسية</th><td style="color:#A94442;font-weight:700">${alg0.replace(/\n/g, "<br>")}</td></tr>`);
   box.innerHTML = `<table class="info-table"><tbody>${rows.join("")}</tbody></table>`;
 }
 
 function renderTimeline(rows) {
   lastTimelineRows = rows || [];
   renderVitalsTrends(lastTimelineRows);
-  const box = document.getElementById("hist-search");
-  if (box) box.value = "";
-  renderTimelineRows(lastTimelineRows);
+  applyTimelineView();
 }
 /* Split out from renderTimeline() so the in-history search box can
    re-render a filtered subset without touching the trends or the
    cached full list. */
 function renderTimelineRows(rows) {
   const list = document.getElementById("c-timeline");
-  if (!rows.length) { list.innerHTML = `<li class="empty-state">لا توجد زيارات مطابقة</li>`; return; }
+  if (!rows.length) {
+    list.innerHTML = `<li class="empty-state">${timelineFilterActive() ? "لا توجد زيارات مطابقة للفلتر" : "لا توجد زيارات سابقة"}</li>`;
+    return;
+  }
   list.innerHTML = "";
   rows.forEach(r => {
     const li = document.createElement("li");
     const oldFormat = r.diagnosis || r.symptoms || r.ultrasoundFindings || r.prescription;
-    const nextVisitStatus = resolveNextVisitStatus(r.nextVisitDate, rows);
+    const nextVisitStatus = resolveNextVisitStatus(r.nextVisitDate, lastTimelineRows);
     li.innerHTML = `<div class="t-date">${r.date || "—"}${nextVisitStatus}</div>
       <div class="t-body">
         ${r.note ? r.note.replace(/\n/g, "<br>") : ""}
@@ -3715,7 +3892,7 @@ function renderTimelineRows(rows) {
       ${renderDxView(r)}
       ${renderVitalsChips(r.vitals)}
       ${renderRxView(r)}
-      ${renderCustomFieldsView(r.customFields)}`;
+      ${renderCustomFieldsView(r.customFields, currentClinicalProfile && currentClinicalProfile.fieldStyles)}`;
     list.appendChild(li);
   });
 }
@@ -3858,29 +4035,21 @@ let clinicalProfileModalMode = "existing"; // "existing" | "pending"
 let pendingClinicalProfileDraft = null; // { chronicConditions, ongoingMedications, customFields } staged for a not-yet-created patient
 function refreshPendingClinicalProfileSummary() {
   document.getElementById("np-clinical-profile-summary").textContent =
-    pendingClinicalProfileDraft ? "📋 تم إضافة بيانات أولية (تعديل)" : "+ بيانات أولية / أمراض مزمنة";
+    pendingClinicalProfileDraft ? "📋 تم إضافة البيانات الأولية (تعديل)" : "+ البيانات الأولية";
 }
 async function openClinicalProfileModal(mode, data) {
   clinicalProfileModalMode = mode;
   document.getElementById("cp-error").textContent = "";
-  document.getElementById("cp-chronic").value = data.chronicConditions || "";
-  document.getElementById("cp-meds").value = data.ongoingMedications || "";
   document.getElementById("cp-allergies").value = data.allergies || legacyAllergiesFrom(data) || "";
-  clearCustomFields("cp-cf-list");
-  const existingEntries = Object.entries(data.customFields || {});
-  if (existingEntries.length) existingEntries.forEach(([label, value]) => customFieldsAddRow("cp-cf-list", label, value));
-  else await populatePinnedFieldRows("cp-cf-list", "cp");
+  await populateProfileGrid("cp-cf-list", data.customFields, data.fieldStyles);
   openModal("modal-clinical-profile");
 }
 function wireClinicalProfilePanel() {
   wireCustomFieldsWidget("cp-cf-list", "cp-cf-add");
-  const chronicInput = document.getElementById("cp-chronic");
-  const medsInput = document.getElementById("cp-meds");
+  wireTemplateAutoPersist("cp-cf-list");
+  wireFieldStyleModal();
   const errorEl = document.getElementById("cp-error");
 
-  document.getElementById("v-clinical-profile-btn").addEventListener("click", () => {
-    openClinicalProfileModal("existing", currentClinicalProfile || {});
-  });
   document.getElementById("np-clinical-profile-btn").addEventListener("click", () => {
     openClinicalProfileModal("pending", pendingClinicalProfileDraft || {});
   });
@@ -3888,14 +4057,13 @@ function wireClinicalProfilePanel() {
   document.getElementById("cp-save-btn").addEventListener("click", async () => {
     errorEl.textContent = "";
     const data = {
-      chronicConditions: chronicInput.value.trim(),
-      ongoingMedications: medsInput.value.trim(),
       allergies: document.getElementById("cp-allergies").value.trim(),
-      customFields: readCustomFields("cp-cf-list")
+      customFields: readCustomFields("cp-cf-list"),
+      fieldStyles: readFieldStyles("cp-cf-list")
     };
-    await persistPinnedFields("cp-cf-list", "cp");
+    await persistTemplateFields("cp-cf-list");
     if (clinicalProfileModalMode === "pending") {
-      const isEmpty = !data.chronicConditions && !data.ongoingMedications && !data.allergies && !Object.keys(data.customFields).length;
+      const isEmpty = !data.allergies && !Object.keys(data.customFields).length;
       pendingClinicalProfileDraft = isEmpty ? null : data;
       refreshPendingClinicalProfileSummary();
       closeModal("modal-clinical-profile");
@@ -3912,8 +4080,261 @@ function wireClinicalProfilePanel() {
   });
 }
 
+/* ================= البيانات الأولية: permanent template + colours =================
+   Every معطى created here is remembered clinic-wide (pinnedFields/cp)
+   and shows on EVERY patient until deleted. 📌 only decides whether the
+   typed value becomes the default for new cases. Colours live either on
+   the template (all cases) or on this patient's clinicalProfile. */
+const PROFILE_FORM_KEY = "cp";
+let profileTemplateCache = null;
+function rebuildFieldStyleTemplate() {
+  fieldStyleTemplate = {};
+  Object.values(profileTemplateCache || {}).forEach(entry => {
+    if (entry.color || entry.highlight) fieldStyleTemplate[entry.label] = { color: entry.color || "", highlight: entry.highlight || "" };
+  });
+}
+function paintStyleSwatch(row) {
+  const btn = row.querySelector(".cf-style-btn");
+  if (!btn) return;
+  const { color, highlight } = row.dataset;
+  btn.style.color = color || "var(--ink-soft)";
+  btn.style.background = highlight || "#fff";
+  btn.style.borderColor = (color || highlight) ? (color || highlight) : "var(--line)";
+}
+function setRowStyle(row, { color, highlight, scope }) {
+  row.dataset.color = color || "";
+  row.dataset.highlight = highlight || "";
+  if (scope === "all") {
+    row.dataset.tplColor = color || "";
+    row.dataset.tplHighlight = highlight || "";
+    row.dataset.override = "";
+  } else {
+    row.dataset.override = (color || highlight) ? "1" : "";
+  }
+  paintStyleSwatch(row);
+}
+let styleTargetRow = null;
+function openFieldStyleModal(row) {
+  styleTargetRow = row;
+  const colorOn = document.getElementById("fs-color-on");
+  const hlOn = document.getElementById("fs-hl-on");
+  const colorInput = document.getElementById("fs-color");
+  const hlInput = document.getElementById("fs-hl");
+  colorOn.checked = !!row.dataset.color;
+  hlOn.checked = !!row.dataset.highlight;
+  if (row.dataset.color) colorInput.value = row.dataset.color;
+  if (row.dataset.highlight) hlInput.value = row.dataset.highlight;
+  document.getElementById("fs-scope").value = row.dataset.override === "1" ? "one" : "all";
+  document.getElementById("modal-field-style-title").textContent =
+    `لون: ${row.querySelector(".cf-label").value.trim() || "المعطى"}`;
+  refreshStylePreview();
+  openModal("modal-field-style");
+}
+function refreshStylePreview() {
+  const preview = document.getElementById("fs-preview");
+  const color = document.getElementById("fs-color-on").checked ? document.getElementById("fs-color").value : "";
+  const highlight = document.getElementById("fs-hl-on").checked ? document.getElementById("fs-hl").value : "";
+  const label = styleTargetRow ? (styleTargetRow.querySelector(".cf-label").value.trim() || "معطى") : "معاينة";
+  const value = styleTargetRow ? (styleTargetRow.querySelector(".cf-value").value.trim() || "قيمة") : "";
+  preview.textContent = `${label} ${value}`.trim();
+  preview.style.color = color || "var(--ink)";
+  preview.style.background = highlight || "#fff";
+}
+function wireFieldStyleModal() {
+  ["fs-color-on", "fs-hl-on", "fs-color", "fs-hl"].forEach(id =>
+    document.getElementById(id).addEventListener("input", refreshStylePreview));
+  document.getElementById("fs-apply-btn").addEventListener("click", () => {
+    if (!styleTargetRow) return;
+    setRowStyle(styleTargetRow, {
+      color: document.getElementById("fs-color-on").checked ? document.getElementById("fs-color").value : "",
+      highlight: document.getElementById("fs-hl-on").checked ? document.getElementById("fs-hl").value : "",
+      scope: document.getElementById("fs-scope").value
+    });
+    closeModal("modal-field-style");
+  });
+  document.getElementById("fs-clear-btn").addEventListener("click", () => {
+    if (!styleTargetRow) return;
+    setRowStyle(styleTargetRow, { color: "", highlight: "", scope: document.getElementById("fs-scope").value });
+    closeModal("modal-field-style");
+  });
+}
+function readFieldStyles(listId) {
+  const out = {};
+  document.querySelectorAll(`#${listId} .custom-field-row`).forEach(row => {
+    const label = row.querySelector(".cf-label").value.trim();
+    if (!label || row.dataset.override !== "1") return;
+    if (!row.dataset.color && !row.dataset.highlight) return;
+    out[label] = { color: row.dataset.color || "", highlight: row.dataset.highlight || "" };
+  });
+  return out;
+}
+async function persistTemplateFields(listId) {
+  const template = {};
+  document.querySelectorAll(`#${listId} .custom-field-row`).forEach(row => {
+    const label = row.querySelector(".cf-label").value.trim();
+    if (!label) return;
+    const keepValue = row.querySelector(".cf-pin")?.checked;
+    template[label] = {
+      value: keepValue ? row.querySelector(".cf-value").value.trim() : "",
+      color: row.dataset.tplColor || "",
+      highlight: row.dataset.tplHighlight || ""
+    };
+  });
+  await savePinnedFields(PROFILE_FORM_KEY, template);
+  profileTemplateCache = null;
+  if (currentPatientId) renderProfileStrip(currentClinicalProfile);
+}
+async function populateProfileGrid(listId, savedFields, styleOverrides) {
+  clearCustomFields(listId);
+  const saved = { ...(savedFields || {}) };
+  const overrides = { ...(styleOverrides || {}) };
+  const template = await loadPinnedFields(PROFILE_FORM_KEY);
+  profileTemplateCache = template; rebuildFieldStyleTemplate();
+  const addRow = (label, value, pinned, tpl) => {
+    customFieldsAddRow(listId, label, value, pinned);
+    const row = document.getElementById(listId).lastElementChild;
+    const own = overrides[label];
+    row.dataset.tplColor = (tpl && tpl.color) || "";
+    row.dataset.tplHighlight = (tpl && tpl.highlight) || "";
+    row.dataset.override = own ? "1" : "";
+    row.dataset.color = own ? (own.color || "") : row.dataset.tplColor;
+    row.dataset.highlight = own ? (own.highlight || "") : row.dataset.tplHighlight;
+    paintStyleSwatch(row);
+  };
+  Object.values(template).forEach(entry => {
+    const hasSaved = Object.prototype.hasOwnProperty.call(saved, entry.label);
+    const value = hasSaved ? saved[entry.label] : (entry.value || "");
+    delete saved[entry.label];
+    addRow(entry.label, value, !!entry.value, entry);
+  });
+  Object.entries(saved).forEach(([label, value]) => addRow(label, value, false, null));
+}
+/* Keeps the clinic-wide list in step as rows are added/renamed/deleted. */
+function wireTemplateAutoPersist(listId) {
+  const wrap = document.getElementById(listId);
+  wrap.addEventListener("change", (e) => {
+    if (e.target.matches(".cf-label, .cf-pin, .cf-value")) persistTemplateFields(listId);
+  });
+  wrap.addEventListener("click", (e) => {
+    if (e.target.closest(".cf-remove")) setTimeout(() => persistTemplateFields(listId), 0);
+  });
+}
+/* Read-only strip of البيانات الأولية inside the patient header. */
+async function renderProfileStrip(data) {
+  const box = document.getElementById("c-profile-fields");
+  if (!profileTemplateCache) { profileTemplateCache = await loadPinnedFields(PROFILE_FORM_KEY); rebuildFieldStyleTemplate(); }
+  const overrides = (data && data.fieldStyles) || null;
+  const saved = { ...((data && data.customFields) || {}) };
+  const items = [];
+  Object.values(profileTemplateCache).forEach(entry => {
+    const value = Object.prototype.hasOwnProperty.call(saved, entry.label) ? saved[entry.label] : "";
+    delete saved[entry.label];
+    items.push([entry.label, value]);
+  });
+  Object.entries(saved).forEach(pair => items.push(pair));
+  box.innerHTML = items
+    .map(([k, v]) => `<div class="ps-item"${fieldStyleAttr(k, overrides)}><span>${k}</span><b>${v || "—"}</b></div>`).join("");
+}
+
+/* ================= Visit timeline: sort + Excel-style filter ================= */
+let timelineSort = "desc";
+let timelineFilter = { q: "", range: "all", from: "", to: "" };
+function visitDateKey(r) {
+  if (r.date) return r.date;
+  if (!r.createdAt) return "";
+  const d = new Date(r.createdAt);
+  return isNaN(d) ? "" : d.toISOString().slice(0, 10);
+}
+function timelineFilterActive() {
+  return !!(timelineFilter.q || (timelineFilter.range && timelineFilter.range !== "all"));
+}
+function filterTimelineRows() {
+  const f = timelineFilter;
+  const today = todayKey();
+  return lastTimelineRows.filter(r => {
+    const key = visitDateKey(r);
+    if (f.range === "day" && key !== today) return false;
+    if (f.range === "month" && key.slice(0, 7) !== today.slice(0, 7)) return false;
+    if (f.range === "year" && key.slice(0, 4) !== today.slice(0, 4)) return false;
+    if (f.range === "custom") {
+      if (f.from && (!key || key < f.from)) return false;
+      if (f.to && (!key || key > f.to)) return false;
+    }
+    if (f.q && !normalizeArabic(historyRowText(r)).includes(normalizeArabic(f.q))) return false;
+    return true;
+  });
+}
+function applyTimelineView() {
+  const rows = filterTimelineRows().slice().sort((a, b) => {
+    const av = a.createdAt || visitDateKey(a), bv = b.createdAt || visitDateKey(b);
+    if (av === bv) return 0;
+    return timelineSort === "desc" ? (av > bv ? -1 : 1) : (av > bv ? 1 : -1);
+  });
+  const filtered = timelineFilterActive();
+  const summary = document.getElementById("tl-summary");
+  if (summary) summary.textContent = filtered ? `عرض ${rows.length} من ${lastTimelineRows.length} زيارة` : "";
+  document.getElementById("tl-filter-btn").classList.toggle("active", filtered);
+  renderTimelineRows(rows);
+}
+function wireTimelineToolbar() {
+  const panel = document.getElementById("tl-filter-panel");
+  const rangeSelect = document.getElementById("tl-range");
+  document.getElementById("tl-filter-btn").addEventListener("click", () => {
+    panel.style.display = panel.style.display === "none" ? "" : "none";
+  });
+  document.getElementById("tl-sort-btn").addEventListener("click", () => {
+    timelineSort = timelineSort === "desc" ? "asc" : "desc";
+    const btn = document.getElementById("tl-sort-btn");
+    document.getElementById("tl-sort-icon").textContent = timelineSort === "desc" ? "↓" : "↑";
+    btn.title = timelineSort === "desc" ? "ترتيب: الأحدث أولًا" : "ترتيب: الأقدم أولًا";
+    btn.classList.toggle("active", timelineSort === "asc");
+    applyTimelineView();
+  });
+  rangeSelect.addEventListener("change", () => {
+    document.getElementById("tl-custom-range").style.display = rangeSelect.value === "custom" ? "" : "none";
+  });
+  document.getElementById("tl-apply-btn").addEventListener("click", () => {
+    timelineFilter = {
+      q: document.getElementById("tl-q").value.trim(),
+      range: rangeSelect.value,
+      from: document.getElementById("tl-from").value,
+      to: document.getElementById("tl-to").value
+    };
+    panel.style.display = "none";
+    applyTimelineView();
+  });
+  document.getElementById("tl-clear-btn").addEventListener("click", () => {
+    timelineFilter = { q: "", range: "all", from: "", to: "" };
+    document.getElementById("tl-q").value = "";
+    rangeSelect.value = "all";
+    document.getElementById("tl-from").value = "";
+    document.getElementById("tl-to").value = "";
+    document.getElementById("tl-custom-range").style.display = "none";
+    applyTimelineView();
+  });
+}
+function resetTimelineToolbar() {
+  timelineSort = "desc";
+  timelineFilter = { q: "", range: "all", from: "", to: "" };
+  const q = document.getElementById("tl-q");
+  if (!q) return;
+  q.value = "";
+  document.getElementById("tl-range").value = "all";
+  document.getElementById("tl-from").value = "";
+  document.getElementById("tl-to").value = "";
+  document.getElementById("tl-custom-range").style.display = "none";
+  document.getElementById("tl-filter-panel").style.display = "none";
+  document.getElementById("tl-sort-icon").textContent = "↓";
+  document.getElementById("tl-sort-btn").classList.remove("active");
+  document.getElementById("tl-filter-btn").classList.remove("active");
+  document.getElementById("tl-summary").textContent = "";
+}
+
 function wireExamPanel() {
-  wireCustomFieldsWidget("v-cf-list", "v-cf-add");
+  wireTimelineToolbar();
+  document.getElementById("c-profile-edit-btn").addEventListener("click", () => {
+    openClinicalProfileModal("existing", currentClinicalProfile || {});
+  });
   wireClinicalV2Panels();
   wireClinicalV21Panels();
   wireExamInvoicePanel();
@@ -3935,14 +4356,13 @@ function wireExamPanel() {
       diagnoses: diagnoses.length ? diagnoses : null,
       prescriptionItems: prescriptionItems.length ? prescriptionItems : null,
       rxAdvice: document.getElementById("rx-advice").value.trim() || null,
-      labOrders: labOrders.length ? labOrders : null,
-      customFields: readCustomFields("v-cf-list")
+      labOrders: labOrders.length ? labOrders : null
+      /* البيانات الأولية are NOT snapshotted per visit — they belong to
+         the patient's file and are shown once in the header. */
     };
     saveDrugSuggestions(prescriptionItems);
     saveDxSuggestions(diagnoses);
     await completeVisit({ branchId: me.branchId, patientId: currentPatientId, doctorId: me.uid, queueId: currentQueueId, record });
-    saveCustomFieldSuggestions(record.customFields);
-    await persistPinnedFields("v-cf-list", "v");
     if (nextVisitDate) {
       await bookAppointment(nextVisitDate, {
         patientId: currentPatientId, patientName, doctorId: me.uid, bookedBy: me.uid,
@@ -3955,9 +4375,7 @@ function wireExamPanel() {
     document.getElementById("v-next-visit").value = "";
     document.getElementById("v-next-visit-note").value = "";
     refreshNextVisitSummary();
-    clearCustomFields("v-cf-list");
     resetClinicalV2ForPatient();
-    populatePinnedFieldRows("v-cf-list", "v");
     loadAndRenderDoctorAppointments();
   };
 }
@@ -4915,7 +5333,6 @@ async function downloadBackup() {
 /* ---------- wiring for v2.1 ---------- */
 function wireClinicalV21Panels() {
   wireDxPanel();
-  wireHistorySearch();
 }
 function wireReportsPanels() {
   document.getElementById("finance-open-reports-btn").onclick = () => openModal("modal-reports");
