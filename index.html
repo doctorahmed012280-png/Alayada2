@@ -558,6 +558,20 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
 .vitals-grid .vf input.out-of-range{border-color:#A94442;background:#FDECEA;color:#7A2F2C;font-weight:600;}
 .vitals-grid .vf .hint{font-size:.62rem;color:#9A9280;text-align:center;}
 .rx-row{display:grid;grid-template-columns:1.4fr 1fr 1fr .9fr auto;gap:6px;margin-bottom:6px;align-items:start;}
+/* Prescription row, split into quick numeric cells: اسم الدواء on its own
+   line, then وحدة/قيمة الجرعة, then عدد المرات + عدد الأيام as four
+   columns so the doctor only types digits. */
+.rx-row.rx-row-split{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px;background:#FBF9F4;}
+.rx-row-split .rx-drug{grid-column:span 3;}
+.rx-row-split .rx-del{grid-column:span 1;}
+.rx-row-split select{padding:7px 6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);width:100%;font-size:.85rem;}
+.rx-row-split .rx-cell{grid-column:span 2;display:flex;align-items:center;gap:4px;min-width:0;}
+.rx-row-split .rx-cell > *{min-width:0;}
+.rx-row-split .rx-tag{flex:0 0 auto;font-size:.75rem;color:var(--ink-soft);font-weight:700;background:#fff;
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 6px;white-space:nowrap;}
+.rx-row-split .rx-num{flex:1 1 auto;text-align:center;font-weight:700;}
+.vitals-collapsed{display:none !important;}
 .rx-row input{padding:7px 8px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);width:100%;}
 .rx-row .rx-del{background:none;border:1px solid var(--line);border-radius:var(--radius-sm);color:#A94442;cursor:pointer;padding:6px 9px;}
 @media(max-width:640px){.rx-row{grid-template-columns:1fr 1fr;}.rx-row .rx-del{grid-column:span 2;}}
@@ -843,8 +857,11 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
             <input type="hidden" id="v-next-visit">
             <input type="hidden" id="v-next-visit-note">
             <div class="sub-head">🩺 العلامات الحيوية والقياسات
-              <button type="button" class="btn btn-ghost btn-sm" id="v-vitals-clear">تفريغ</button></div>
-            <div class="vitals-grid" id="v-vitals">
+              <span style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-ghost btn-sm" id="v-vitals-toggle">إظهار</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="v-vitals-clear">تفريغ</button>
+              </span></div>
+            <div class="vitals-grid vitals-collapsed" id="v-vitals">
               <div class="vf"><label>ضغط انقباضي</label><input id="vt-sys" type="number" inputmode="numeric" placeholder="120"><span class="hint">90–139</span></div>
               <div class="vf"><label>ضغط انبساطي</label><input id="vt-dia" type="number" inputmode="numeric" placeholder="80"><span class="hint">60–89</span></div>
               <div class="vf"><label>النبض</label><input id="vt-pulse" type="number" inputmode="numeric" placeholder="78"><span class="hint">60–100</span></div>
@@ -4782,6 +4799,14 @@ function wireVitalsPanel() {
     });
   });
   document.getElementById("v-vitals-clear").addEventListener("click", clearVitals);
+  /* The vitals grid is long on a phone, so it starts folded away and
+     opens only when the doctor actually needs to record measurements. */
+  const grid = document.getElementById("v-vitals");
+  const toggle = document.getElementById("v-vitals-toggle");
+  toggle.addEventListener("click", () => {
+    const hidden = grid.classList.toggle("vitals-collapsed");
+    toggle.textContent = hidden ? "إظهار" : "إخفاء";
+  });
 }
 
 /* ---------- Task 4: inline SVG trend charts (no chart library) ---------- */
@@ -4840,25 +4865,63 @@ const RX_FIELDS = [
   { k: "freq",     ph: "التكرار (3× يوميًا)", suggest: false },
   { k: "duration", ph: "المدة (7 أيام)",   suggest: false }
 ];
+const RX_DOSE_UNITS = ["", "مجم", "جم", "مل", "نقطة", "قرص", "كبسولة", "ملعقة", "بخة", "لبوس", "أمبول", "وحدة"];
+/* Splits the old free-text dose/freq/duration boxes into labelled cells
+   the doctor can fill with digits only: [وحدة الجرعة][القيمة] then
+   [عدد المرات][رقم] [عدد الأيام][رقم]. What gets SAVED keeps the old
+   shape (dose/freq/duration strings) so printing, history and repeat
+   prescriptions all keep working unchanged. */
+function splitLeadingNumber(text) {
+  const m = String(text || "").trim().match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
+  return m ? { num: m[1], rest: m[2].trim() } : { num: "", rest: String(text || "").trim() };
+}
 function rxAddRow(item) {
   const list = document.getElementById("rx-list");
   const row = document.createElement("div");
-  row.className = "rx-row";
-  row.innerHTML = RX_FIELDS.map(f => f.suggest
-    ? `<span class="rx-suggest"><input data-k="${f.k}" placeholder="${f.ph}" autocomplete="off"><span class="rx-suggest-list"></span></span>`
-    : `<input data-k="${f.k}" placeholder="${f.ph}">`).join("") +
-    `<button type="button" class="rx-del" title="حذف">✕</button>`;
+  row.className = "rx-row rx-row-split";
+  row.innerHTML = `
+    <span class="rx-suggest rx-drug"><input data-k="drug" placeholder="اسم الدواء" autocomplete="off"><span class="rx-suggest-list"></span></span>
+    <button type="button" class="rx-del" title="حذف">✕</button>
+    <div class="rx-cell">
+      <select data-k="doseUnit">${RX_DOSE_UNITS.map(u => `<option value="${u}">${u || "الوحدة"}</option>`).join("")}</select>
+    </div>
+    <div class="rx-cell">
+      <input class="rx-num" data-k="doseValue" inputmode="decimal" placeholder="الجرعة">
+    </div>
+    <div class="rx-cell">
+      <span class="rx-tag">عدد المرات</span>
+      <input class="rx-num" data-k="times" inputmode="numeric" placeholder="3">
+    </div>
+    <div class="rx-cell">
+      <span class="rx-tag">عدد الأيام</span>
+      <input class="rx-num" data-k="days" inputmode="numeric" placeholder="7">
+    </div>`;
   list.appendChild(row);
-  if (item) RX_FIELDS.forEach(f => { const el = row.querySelector(`[data-k="${f.k}"]`); if (el) el.value = item[f.k] || ""; });
+  if (item) {
+    row.querySelector('[data-k="drug"]').value = item.drug || "";
+    const dose = splitLeadingNumber(item.dose);
+    row.querySelector('[data-k="doseValue"]').value = dose.num || (dose.rest ? "" : "");
+    const unitSel = row.querySelector('[data-k="doseUnit"]');
+    unitSel.value = RX_DOSE_UNITS.includes(dose.rest) ? dose.rest : "";
+    if (!dose.num && dose.rest && unitSel.value === "") row.querySelector('[data-k="doseValue"]').value = dose.rest;
+    row.querySelector('[data-k="times"]').value = splitLeadingNumber(item.freq).num;
+    row.querySelector('[data-k="days"]').value = splitLeadingNumber(item.duration).num;
+  }
   row.querySelector(".rx-del").addEventListener("click", () => row.remove());
   wireDrugSuggest(row.querySelector('[data-k="drug"]'));
   return row;
 }
 function readPrescription() {
+  const val = (row, k) => { const el = row.querySelector(`[data-k="${k}"]`); return el ? el.value.trim() : ""; };
   return Array.from(document.querySelectorAll("#rx-list .rx-row")).map(row => {
-    const o = {};
-    RX_FIELDS.forEach(f => { const el = row.querySelector(`[data-k="${f.k}"]`); o[f.k] = el ? el.value.trim() : ""; });
-    return o;
+    const doseValue = val(row, "doseValue"), doseUnit = val(row, "doseUnit");
+    const times = val(row, "times"), days = val(row, "days");
+    return {
+      drug: val(row, "drug"),
+      dose: [doseValue, doseUnit].filter(Boolean).join(" "),
+      freq: times ? `${times} مرات يوميًا` : "",
+      duration: days ? `${days} أيام` : ""
+    };
   }).filter(o => o.drug);
 }
 function clearPrescription() {
@@ -5035,7 +5098,15 @@ function wireClinicalV2Panels() {
   refreshClinicSettingsCache().catch(err => console.error("settings cache warm-up failed", err));
 }
 /* Called by openPatientChart() so nothing leaks between patients. */
+function collapseVitalsPanel() {
+  const grid = document.getElementById("v-vitals");
+  const toggle = document.getElementById("v-vitals-toggle");
+  if (!grid || !toggle) return;
+  grid.classList.add("vitals-collapsed");
+  toggle.textContent = "إظهار";
+}
 function resetClinicalV2ForPatient() {
+  collapseVitalsPanel();
   lastTimelineRows = [];
   dxSelected = [];
   if (document.getElementById("dx-chips")) { renderDxChips(); document.getElementById("dx-input").value = ""; }
