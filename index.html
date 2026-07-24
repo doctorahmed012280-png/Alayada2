@@ -561,16 +561,17 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
 /* Prescription row, split into quick numeric cells: اسم الدواء on its own
    line, then وحدة/قيمة الجرعة, then عدد المرات + عدد الأيام as four
    columns so the doctor only types digits. */
-.rx-row.rx-row-split{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;
-  border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px;background:#FBF9F4;}
-.rx-row-split .rx-drug{grid-column:span 3;}
-.rx-row-split .rx-del{grid-column:span 1;}
-.rx-row-split select{padding:7px 6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);width:100%;font-size:.85rem;}
-.rx-row-split .rx-cell{grid-column:span 2;display:flex;align-items:center;gap:4px;min-width:0;}
+.rx-row.rx-row-split{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px;background:#FBF9F4;align-items:center;}
+.rx-row-split .rx-drug{grid-column:1 / -1;}
+.rx-row-split .rx-drug input{font-weight:700;}
+.rx-row-split select{padding:8px 6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;width:100%;font-size:.85rem;}
+.rx-row-split .rx-cell{grid-column:span 2;display:flex;align-items:center;gap:5px;min-width:0;}
 .rx-row-split .rx-cell > *{min-width:0;}
-.rx-row-split .rx-tag{flex:0 0 auto;font-size:.75rem;color:var(--ink-soft);font-weight:700;background:#fff;
-  border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 6px;white-space:nowrap;}
-.rx-row-split .rx-num{flex:1 1 auto;text-align:center;font-weight:700;}
+.rx-row-split .rx-tag{flex:0 0 auto;font-size:.75rem;color:var(--ink-soft);font-weight:700;white-space:nowrap;}
+.rx-row-split .rx-num{flex:1 1 auto;text-align:center;font-weight:700;background:#fff;}
+.rx-row-split .rx-del{grid-column:1 / -1;width:100%;justify-self:stretch;padding:6px;margin-top:2px;
+  background:#fff;border:1px dashed var(--line);}
 .vitals-collapsed{display:none !important;}
 .rx-row input{padding:7px 8px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);width:100%;}
 .rx-row .rx-del{background:none;border:1px solid var(--line);border-radius:var(--radius-sm);color:#A94442;cursor:pointer;padding:6px 9px;}
@@ -4881,12 +4882,12 @@ function rxAddRow(item) {
   row.className = "rx-row rx-row-split";
   row.innerHTML = `
     <span class="rx-suggest rx-drug"><input data-k="drug" placeholder="اسم الدواء" autocomplete="off"><span class="rx-suggest-list"></span></span>
-    <button type="button" class="rx-del" title="حذف">✕</button>
     <div class="rx-cell">
-      <select data-k="doseUnit">${RX_DOSE_UNITS.map(u => `<option value="${u}">${u || "الوحدة"}</option>`).join("")}</select>
+      <span class="rx-tag">الجرعة</span>
+      <input class="rx-num" data-k="doseValue" inputmode="decimal" placeholder="—">
     </div>
     <div class="rx-cell">
-      <input class="rx-num" data-k="doseValue" inputmode="decimal" placeholder="الجرعة">
+      <select data-k="doseUnit">${RX_DOSE_UNITS.map(u => `<option value="${u}">${u || "الوحدة"}</option>`).join("")}</select>
     </div>
     <div class="rx-cell">
       <span class="rx-tag">عدد المرات</span>
@@ -4895,7 +4896,8 @@ function rxAddRow(item) {
     <div class="rx-cell">
       <span class="rx-tag">عدد الأيام</span>
       <input class="rx-num" data-k="days" inputmode="numeric" placeholder="7">
-    </div>`;
+    </div>
+    <button type="button" class="rx-del" title="حذف الدواء">✕ حذف الدواء</button>`;
   list.appendChild(row);
   if (item) {
     row.querySelector('[data-k="drug"]').value = item.drug || "";
@@ -5134,9 +5136,10 @@ function renderVitalsChips(v) {
 function renderRxView(r) {
   const blocks = [];
   if (Array.isArray(r.prescriptionItems) && r.prescriptionItems.length) {
-    const lines = r.prescriptionItems
-      .map(i => `• ${i.drug}${i.dose ? " — " + i.dose : ""}${i.freq ? " — " + i.freq : ""}${i.duration ? " — " + i.duration : ""}`)
-      .join("<br>");
+    const lines = r.prescriptionItems.map(i => {
+      const details = [i.dose, i.freq, i.duration].filter(Boolean).join(" — ");
+      return `• <strong>${i.drug}</strong>${details ? `<br><span style="color:var(--ink-soft);font-size:.85em;padding-inline-start:12px;">${details}</span>` : ""}`;
+    }).join("<br>");
     blocks.push(`<div class="rx-view"><strong>💊 الروشتة</strong><br>${lines}${r.rxAdvice ? `<br><em>${r.rxAdvice}</em>` : ""}</div>`);
   }
   if (Array.isArray(r.labOrders) && r.labOrders.length) {
