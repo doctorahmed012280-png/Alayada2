@@ -284,6 +284,11 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
 
 .queue-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
 .queue-item { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:#FBF9F4; border-radius:var(--radius-sm); padding:14px 16px; border-inline-start:5px solid var(--st-waiting); }
+.queue-no { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:34px;
+  border-radius:50%; background:var(--primary); color:#fff; font-weight:800; font-size:1rem; }
+.queue-item.queue-soon { background:#FFF8E1; border-inline-start-color:var(--accent); }
+.queue-item.queue-soon .queue-no { background:var(--accent); }
+.queue-sent { color:var(--st-done); font-weight:800; }
 .queue-item[data-status="in-clinic"] { border-inline-start-color:var(--st-inclinic); }
 .queue-item[data-status="done"] { border-inline-start-color:var(--st-done); opacity:.7; }
 .queue-item[data-status="cancelled"] { border-inline-start-color:var(--st-cancelled); opacity:.55; text-decoration:line-through; }
@@ -1877,9 +1882,26 @@ async function checkInPatient({ branchId, patientId, patientName, doctorId, crea
   const date = todayKey();
   const queueRef = push(ref(db, t(`queue/${branchId}/${date}`)));
   const notifRef = push(ref(db, t(`notifications/${branchId}/${doctorId}`)));
+  /* Ticket number: restarts at 1 every day, per branch — read whatever
+     is already in today's queue and take the next one. */
+  let queueNumber = 1;
+  try {
+    const todaySnap = await get(ref(db, t(`queue/${branchId}/${date}`)));
+    todaySnap.forEach(child => {
+      const n = Number(child.val().queueNumber) || 0;
+      if (n >= queueNumber) queueNumber = n + 1;
+    });
+  } catch (err) { console.error("تعذّر حساب رقم الدور", err); }
+  /* Keep the phone on the queue row so the "بلّغي الحالة" buttons work
+     without another read per card. */
+  let patientPhone = null;
+  try {
+    const phoneSnap = await get(ref(db, t(`patients/${patientId}/phone`)));
+    patientPhone = phoneSnap.exists() ? phoneSnap.val() : null;
+  } catch (err) { console.error("تعذّرت قراءة رقم الحالة", err); }
   const updates = {};
   updates[t(`queue/${branchId}/${date}/${queueRef.key}`)] = {
-    patientId, patientName, doctorId, status: "waiting",
+    patientId, patientName, patientPhone, queueNumber, doctorId, status: "waiting",
     checkInTime: serverTimestamp(), calledTime: null, createdBy: createdBy || null
   };
   updates[t(`notifications/${branchId}/${doctorId}/${notifRef.key}`)] = {
@@ -3350,20 +3372,64 @@ function wireQueuePanel() {
   };
 }
 
+/* ---- Queue ticket messages ----
+   The app is a static site talking straight to Firebase, so it can't
+   send an SMS by itself (that needs a server holding the gateway key).
+   Instead each waiting card carries WhatsApp/SMS buttons that open the
+   message ready-written on the secretary's phone — one tap to send.
+   QUEUE_SOON_AT is how many cases ahead counts as "دورك قرّب". */
+const QUEUE_SOON_AT = 3;
+function queueMessageFor(row, ahead) {
+  const clinic = (clinicSettingsCache.clinicName || "العيادة").trim();
+  const num = row.queueNumber ? `رقم ${row.queueNumber}` : "";
+  if (ahead <= QUEUE_SOON_AT) {
+    return `${row.patientName || ""}، دورك قرّب في ${clinic}. دورك ${num}` +
+      `${ahead > 0 ? ` وفاضل قدامك ${ahead} حالة` : " وانتي التالية"}. برجاء التواجد بالعيادة.`;
+  }
+  return `أهلاً ${row.patientName || ""}، تم تسجيلك في دور ${clinic} النهاردة. دورك ${num}` +
+    ` وقدامك ${ahead} حالة. هنبعتلك تنبيه تاني لما دورك يقرّب.`;
+}
+function queueContactButtonsHtml(row, ahead) {
+  if (!row.patientPhone) return `<span class="appt-contact-none">لا يوجد رقم</span>`;
+  const parsed = parseEgyptPhone(row.patientPhone);
+  const msg = encodeURIComponent(queueMessageFor(row, ahead));
+  const sent = ahead <= QUEUE_SOON_AT ? row.notifiedSoon : row.notifiedFirst;
+  const wa = parsed.valid
+    ? `<a class="appt-contact-btn wa" data-act="notify" href="https://wa.me/${parsed.intl}?text=${msg}" target="_blank" rel="noopener" title="إبلاغ عبر واتساب">💬</a>`
+    : "";
+  return `<div class="appt-contact">${wa}
+      <a class="appt-contact-btn call" data-act="notify" href="sms:${row.patientPhone}?&body=${msg}" title="إبلاغ برسالة SMS">✉️</a>
+      ${sent ? `<span class="queue-sent" title="تم الإبلاغ">✓</span>` : ""}
+    </div>`;
+}
 function renderQueue(rows) {
   const list = document.getElementById("queue-list");
   if (!rows.length) { list.innerHTML = `<li class="empty-state">لا توجد حالات في الدور بعد</li>`; return; }
   list.innerHTML = "";
+  const waiting = rows.filter(r => r.status === "waiting");
   rows.forEach(row => {
     const li = document.createElement("li");
     li.className = "queue-item"; li.dataset.status = row.status;
+    const ahead = row.status === "waiting" ? waiting.findIndex(r => r.id === row.id) : -1;
+    const soon = ahead > -1 && ahead <= QUEUE_SOON_AT;
+    if (soon && !row.notifiedSoon) li.classList.add("queue-soon");
     li.innerHTML = `
-      <div><strong>${row.patientName || "—"}</strong>
-        <div style="font-size:.8rem;color:var(--ink-soft)">دخول: ${formatTime(row.checkInTime)}</div></div>
-      <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+        ${row.queueNumber ? `<span class="queue-no">${row.queueNumber}</span>` : ""}
+        <div style="min-width:0;"><strong>${row.patientName || "—"}</strong>
+          <div style="font-size:.8rem;color:var(--ink-soft)">دخول: ${formatTime(row.checkInTime)}${
+            ahead > 0 ? ` — قدامها ${ahead}` : (ahead === 0 ? " — التالية" : "")}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span class="badge badge-${row.status}">${QUEUE_STATUS_LABELS[row.status] || row.status}</span>
+        ${row.status === "waiting" ? queueContactButtonsHtml(row, ahead) : ""}
         ${row.status === "waiting" ? `<button class="btn btn-ghost btn-sm" data-act="cancel">إلغاء</button>` : ""}
       </div>`;
+    li.querySelectorAll('[data-act="notify"]').forEach(btn => btn.addEventListener("click", () => {
+      const field = soon ? "notifiedSoon" : "notifiedFirst";
+      update(ref(db, t(`queue/${me.branchId}/${todayKey()}/${row.id}`)), { [field]: true })
+        .catch(err => console.error("تعذّر تسجيل الإبلاغ", err));
+    }));
     const cancelBtn = li.querySelector('[data-act="cancel"]');
     if (cancelBtn) cancelBtn.onclick = () => setQueueStatus(me.branchId, row.id, "cancelled");
     list.appendChild(li);
@@ -3700,8 +3766,11 @@ function renderDoctorQueue(rows) {
     const li = document.createElement("li");
     li.className = "queue-item"; li.dataset.status = row.status;
     li.innerHTML = `
-      <div><strong>${row.patientName || "—"}</strong>
-        <div style="font-size:.8rem;color:var(--ink-soft)">دخول: ${formatTime(row.checkInTime)}</div></div>
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+        ${row.queueNumber ? `<span class="queue-no">${row.queueNumber}</span>` : ""}
+        <div style="min-width:0;"><strong>${row.patientName || "—"}</strong>
+          <div style="font-size:.8rem;color:var(--ink-soft)">دخول: ${formatTime(row.checkInTime)}</div></div>
+      </div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span class="badge badge-${row.status}">${QUEUE_STATUS_LABELS[row.status] || row.status}</span>
         ${row.status === "waiting" ? `<button class="btn btn-primary btn-sm" data-act="call">استدعاء</button>` : ""}
