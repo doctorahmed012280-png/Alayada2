@@ -51,6 +51,9 @@ button,input,select,textarea { font-family:inherit; font-size:inherit; }
    future content. Hidden by default; toggled on by showSection()
    via body.topbar-search-mode, and never while the mobile nav
    drawer is open (the drawer needs the normal brand/user card). */
+.branch-switch { width:100%; margin-top:6px; padding:6px 8px; border-radius:var(--radius-sm);
+  border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.12); color:#F5F1E8; font-size:.82rem; }
+.branch-switch option { color:#1B1B1B; }
 .sidebar-search-slot { display:none; }
 body.topbar-search-mode:not(.drawer-open) #sidebar-brand,
 body.topbar-search-mode:not(.drawer-open) #sidebar-user-card { display:none; }
@@ -679,6 +682,7 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
     <div class="user-card" id="sidebar-user-card">
       <strong id="user-name">—</strong>
       <span id="user-branch">—</span>
+      <select id="user-branch-switch" class="branch-switch" style="display:none;" title="تبديل الفرع"></select>
       <div><button id="logout-btn">تسجيل الخروج</button></div>
     </div>
   </aside>
@@ -3120,6 +3124,7 @@ function showApp() {
   document.getElementById("att-back-btn").onclick = () => showSection("doc-view-chart", "ملف الحالة");
   processAttachmentUploadQueue(); // resume any uploads left queued locally from a previous offline session
   updateStickyOffsets();
+  buildBranchSwitcher();
   if (me.role === "owner") buildDoctorNav(true);
   else if (me.role === "doctor") buildDoctorNav(false);
   else if (me.role === "secretary") buildSecretaryNav();
@@ -3273,17 +3278,34 @@ async function loadDoctorsForBranch() {
   sel.innerHTML = "";
   branchDoctorsCache = {};
   const idxSnap = await get(ref(db, t(`branch_users_index/${me.branchId}`)));
-  if (!idxSnap.exists()) { sel.innerHTML = "<option>لا يوجد أطباء بهذا الفرع</option>"; return; }
-  for (const uid of Object.keys(idxSnap.val())) {
+  const uids = idxSnap.exists() ? Object.keys(idxSnap.val()) : [];
+  for (const uid of uids) {
     const uSnap = await get(ref(db, t(`staff/${uid}`)));
     if (uSnap.exists() && (uSnap.val().role === "doctor" || uSnap.val().role === "owner")) {
       branchDoctorsCache[uid] = uSnap.val().name;
-      const opt = document.createElement("option");
-      opt.value = uid; opt.textContent = uSnap.val().name;
-      sel.appendChild(opt);
     }
   }
-  if (!sel.children.length) sel.innerHTML = "<option>لا يوجد أطباء بهذا الفرع</option>";
+  /* Self-heal: the index can fall behind (e.g. a doctor moved between
+     branches before this build). Anyone whose account says they belong
+     to this branch is listed too, and the index is repaired quietly, so
+     the secretary never gets stuck with "لا يوجد أطباء بهذا الفرع"
+     while the doctor is in fact sitting in the clinic. */
+  try {
+    const staffSnap = await get(ref(db, t("staff")));
+    staffSnap.forEach(child => {
+      const u = child.val();
+      if (u.branchId === me.branchId && (u.role === "doctor" || u.role === "owner") && !branchDoctorsCache[child.key]) {
+        branchDoctorsCache[child.key] = u.name;
+        update(ref(db, t(`branch_users_index/${me.branchId}`)), { [child.key]: true }).catch(() => {});
+      }
+    });
+  } catch (err) { console.error("تعذّر فحص أطباء الفرع", err); }
+  Object.entries(branchDoctorsCache).forEach(([uid, name]) => {
+    const opt = document.createElement("option");
+    opt.value = uid; opt.textContent = name || "—";
+    sel.appendChild(opt);
+  });
+  if (!sel.children.length) sel.innerHTML = "<option value=\"\">لا يوجد أطباء بهذا الفرع — من الإعدادات عيّني طبيبًا للفرع</option>";
 }
 
 /* Standard visit-fee collection stays with the secretary, exactly as
@@ -3706,12 +3728,58 @@ function initDoctor() {
    in initDoctor(), so that one has to be explicitly torn down and
    reopened against the new branch for the switch to actually show up
    without a logout/login. */
-function switchDoctorActiveBranch(newBranchId) {
+/* Moving the doctor's live session to another branch.
+   The account stays LISTED in every branch it covers (we only ever add
+   to branch_users_index, never remove here) — that's what lets the
+   secretary in each branch still find the doctor in "الطبيب المعالج"
+   while the doctor himself hops between branches from the sidebar. The
+   choice is also written to the account so the next login lands on the
+   same branch. */
+async function switchDoctorActiveBranch(newBranchId) {
+  if (!newBranchId || newBranchId === me.branchId) return;
   me.branchId = newBranchId;
   if (doctorQueueUnsub) { doctorQueueUnsub(); doctorQueueUnsub = null; }
   doctorQueueUnsub = subscribeToTodayQueue(me.branchId, renderDoctorQueue);
   unsubs.push(doctorQueueUnsub);
   updateUserBranchLabel();
+  const sel = document.getElementById("user-branch-switch");
+  if (sel && sel.value !== newBranchId) sel.value = newBranchId;
+  try {
+    const updates = {};
+    updates[t(`staff/${me.uid}/branchId`)] = newBranchId;
+    updates[`accounts/${me.uid}/branchId`] = newBranchId;
+    updates[t(`branch_users_index/${newBranchId}/${me.uid}`)] = true;
+    await update(ref(db), updates);
+  } catch (err) { console.error("تعذّر حفظ الفرع النشط", err); }
+  if (typeof loadAndRenderDoctorAppointments === "function") loadAndRenderDoctorAppointments();
+}
+/* Fills the sidebar's one-tap branch picker. The owner sees every
+   branch in the clinic; an employed doctor sees only the branches he's
+   actually assigned to. Hidden entirely when there's just one. */
+async function buildBranchSwitcher() {
+  const sel = document.getElementById("user-branch-switch");
+  if (!sel || !me || (me.role !== "owner" && me.role !== "doctor")) { if (sel) sel.style.display = "none"; return; }
+  let entries = [];
+  try {
+    const snap = await get(ref(db, t("branches")));
+    snap.forEach(child => { if (child.val().active !== false) entries.push([child.key, child.val()]); });
+  } catch (err) { console.error("تعذّر تحميل الفروع", err); }
+  if (me.role === "doctor") {
+    const allowed = [];
+    for (const [id, b] of entries) {
+      if (id === me.branchId) { allowed.push([id, b]); continue; }
+      try {
+        const ok = await get(ref(db, t(`branch_users_index/${id}/${me.uid}`)));
+        if (ok.exists()) allowed.push([id, b]);
+      } catch (err) { /* ignore unreadable branches */ }
+    }
+    entries = allowed;
+  }
+  if (entries.length < 2) { sel.style.display = "none"; return; }
+  sel.innerHTML = entries.map(([id, b]) => `<option value="${id}">🏥 ${b.name || id}</option>`).join("");
+  sel.value = me.branchId;
+  sel.style.display = "";
+  sel.onchange = () => switchDoctorActiveBranch(sel.value);
 }
 
 /* Lets the doctor jump straight to any existing patient's medical
@@ -4712,7 +4780,14 @@ async function addBranch(name, doctorUid) {
     const oldBranchId = doctorSnap.exists() ? doctorSnap.val().branchId : null;
     updates[t(`staff/${doctorUid}/branchId`)] = newBranchId;
     updates[`accounts/${doctorUid}/branchId`] = newBranchId;
-    if (oldBranchId && oldBranchId !== newBranchId) updates[t(`branch_users_index/${oldBranchId}/${doctorUid}`)] = null;
+    /* The clinic OWNER keeps covering every branch he opens, so he stays
+       listed in the old one too — otherwise the secretary there would
+       suddenly find "لا يوجد أطباء بهذا الفرع". An employed doctor is
+       genuinely moved. */
+    const doctorSnapRole = doctorSnap.exists() ? doctorSnap.val().role : null;
+    if (oldBranchId && oldBranchId !== newBranchId && doctorSnapRole !== "owner") {
+      updates[t(`branch_users_index/${oldBranchId}/${doctorUid}`)] = null;
+    }
     updates[t(`branch_users_index/${newBranchId}/${doctorUid}`)] = true;
   }
 
@@ -4754,7 +4829,8 @@ function wireSettingsPanel() {
       // If the owner assigned the new branch to themselves, their own
       // live session needs to move over too — otherwise they'd still be
       // watching their old branch's queue until their next login.
-      if (doctorUid && doctorUid === me.uid) switchDoctorActiveBranch(newBranchId);
+      if (doctorUid && doctorUid === me.uid) await switchDoctorActiveBranch(newBranchId);
+      await buildBranchSwitcher();
 
       document.getElementById("br-name").value = "";
       await loadBranchesForSettings();
