@@ -1247,6 +1247,35 @@ body.topbar-search-mode:not(.drawer-open) .sidebar-search-slot { display:flex; f
       </div>
     </div>
 
+    <!-- ===== SETTINGS MODAL: edit an existing staff account =====
+         Name / role / branch / active can all be changed here. The
+         PASSWORD can't: changing another user's password needs Firebase
+         Admin privileges, which a browser app doesn't have. -->
+    <div class="modal-overlay" id="modal-edit-account">
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-edit-account-title">
+        <div class="modal-box-header">
+          <h3 id="modal-edit-account-title">تعديل الحساب</h3>
+          <button type="button" class="modal-close-btn" aria-label="إغلاق">✕</button>
+        </div>
+        <div class="field"><label for="ea-name">الاسم</label><input id="ea-name" type="text"></div>
+        <div class="field"><label for="ea-role">الصلاحية</label>
+          <select id="ea-role">
+            <option value="doctor">طبيب</option>
+            <option value="secretary">سكرتارية</option>
+            <option value="owner">صاحب/ة العيادة</option>
+          </select></div>
+        <div class="field"><label for="ea-branch">الفرع</label><select id="ea-branch"></select></div>
+        <div class="field" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="ea-active" style="width:auto;">
+          <label for="ea-active" style="margin:0;">الحساب نشط (لو اتقفل مش هيقدر يدخل)</label>
+        </div>
+        <p style="font-size:.8rem;color:var(--ink-soft);margin:0 0 12px;">
+          اسم المستخدم وكلمة المرور مش بيتغيّروا من هنا. لو حد نسي كلمة السر، اقفلي الحساب واعملي حساب جديد له.</p>
+        <p id="ea-error" style="color:var(--st-cancelled);font-size:.85rem;min-height:1em;margin:0 0 8px;"></p>
+        <button type="button" class="btn btn-primary" id="ea-save-btn" style="width:100%;justify-content:center;">حفظ التعديل</button>
+      </div>
+    </div>
+
     <!-- ===== SHARED MODAL: colour + highlight for one معطى ===== -->
     <div class="modal-overlay" id="modal-field-style">
       <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-field-style-title">
@@ -1770,6 +1799,7 @@ function wireSmartPatientSearch(inputId, dropdownId, onSelect) {
       dropdown.innerHTML = results.map((p, i) => `
         <div class="smart-search-item" data-i="${i}" style="padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;">
           <strong>${p.name}</strong> <span class="mono" style="color:var(--ink-soft);font-size:.85rem;">${p.phone || ""}</span>
+          ${p._otherBranch ? `<span style="font-size:.72rem;color:var(--accent-d,#A0522D);font-weight:700;"> — فرع آخر</span>` : ""}
         </div>`).join("");
       dropdown.style.display = "";
       dropdown.querySelectorAll(".smart-search-item").forEach(el => {
@@ -1853,7 +1883,20 @@ async function searchPatients(query) {
     const fileMatch = !!p.fileNumber && normalizeArabic(p.fileNumber).includes(qName) && qName.length >= 2;
     if (nameMatch || phoneMatch || fileMatch) results.push({ id: child.key, ...p, _startsWith: nameNorm.startsWith(qName) });
   });
-  results.sort((a, b) => (a._startsWith === b._startsWith ? 0 : a._startsWith ? -1 : 1));
+  /* Branch scoping: each user works inside their own branch, so cases
+     registered at THIS branch come first. Cases from other branches are
+     still returned (flagged with _otherBranch, and shown with a "فرع
+     آخر" tag) — hiding them completely would make the secretary create a
+     duplicate file for a patient who already exists in the clinic.
+     Records saved before branches existed have no createdBranchId and
+     are treated as belonging here. */
+  results.forEach(r => {
+    r._otherBranch = !!(r.createdBranchId && me && me.branchId && r.createdBranchId !== me.branchId);
+  });
+  results.sort((a, b) => {
+    if (a._otherBranch !== b._otherBranch) return a._otherBranch ? 1 : -1;
+    return a._startsWith === b._startsWith ? 0 : a._startsWith ? -1 : 1;
+  });
   return results.slice(0, 8);
 }
 /* Human-readable file number.
@@ -3097,6 +3140,12 @@ onAuthStateChanged(auth, async (user) => {
         return;
       }
       account = await provisionNewTenant(user.uid, { name: user.displayName || "—", email: user.email || "—" });
+    }
+    if (account.active === false) {
+      document.getElementById("error-msg").textContent =
+        "الحساب ده مقفول حاليًا. كلّمي صاحب/ة العيادة.";
+      await signOut(auth);
+      return;
     }
     me = { uid: user.uid, ...account };
     showApp();
@@ -4806,17 +4855,88 @@ async function renderAccountsList() {
     rows.unshift({ id: me.uid, name: me.name, username: me.email, role: "owner", branchId: me.branchId });
   }
   list.innerHTML = "";
+  accountsCache = {};
   rows.forEach(u => {
+    accountsCache[u.id] = u;
     const li = document.createElement("li");
     const roleLabel = u.role === "doctor" ? "طبيب" : (u.role === "secretary" ? "سكرتارية" : "صاحب/ة العيادة");
     const branchLabel = (branchesCache[u.branchId] && branchesCache[u.branchId].name) || u.branchId || "—";
     li.innerHTML = `<div class="t-date">${roleLabel} — ${branchLabel}</div>
-      <div class="t-body"><strong>${u.name || "—"}</strong> — <span class="mono">${u.username || "—"}</span></div>`;
+      <div class="t-body" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span><strong>${u.name || "—"}</strong> — <span class="mono">${u.username || "—"}</span>
+          ${u.active === false ? `<span style="color:var(--st-cancelled);font-weight:700;"> (مقفول)</span>` : ""}</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-edit-account="${u.id}">✎ تعديل</button>
+      </div>`;
     list.appendChild(li);
+  });
+  list.querySelectorAll("[data-edit-account]").forEach(btn =>
+    btn.addEventListener("click", () => openEditAccountModal(btn.dataset.editAccount)));
+}
+
+/* ---- Editing an account created from الإعدادات ----
+   Writes to BOTH accounts/{uid} (what the login reads) and
+   tenants/{id}/staff/{uid} (what the app lists), and keeps
+   branch_users_index in step when the branch changes. */
+let accountsCache = {};
+let editingAccountId = null;
+function openEditAccountModal(uid) {
+  const u = accountsCache[uid];
+  if (!u) return;
+  editingAccountId = uid;
+  document.getElementById("ea-error").textContent = "";
+  document.getElementById("ea-name").value = u.name || "";
+  document.getElementById("ea-role").value = u.role || "secretary";
+  document.getElementById("ea-active").checked = u.active !== false;
+  const branchSel = document.getElementById("ea-branch");
+  branchSel.innerHTML = Object.entries(branchesCache)
+    .map(([id, b]) => `<option value="${id}">${b.name || id}</option>`).join("");
+  branchSel.value = u.branchId || "";
+  document.getElementById("modal-edit-account-title").textContent = `تعديل: ${u.name || "حساب"}`;
+  openModal("modal-edit-account");
+}
+function wireEditAccountModal() {
+  document.getElementById("ea-save-btn").addEventListener("click", async () => {
+    const errorBox = document.getElementById("ea-error");
+    errorBox.textContent = "";
+    const u = accountsCache[editingAccountId];
+    if (!u) return;
+    const name = document.getElementById("ea-name").value.trim();
+    const role = document.getElementById("ea-role").value;
+    const branchId = document.getElementById("ea-branch").value;
+    const active = document.getElementById("ea-active").checked;
+    if (!name) { errorBox.textContent = "من فضلك اكتبي الاسم."; return; }
+    if (editingAccountId === me.uid && (!active || role !== "owner")) {
+      errorBox.textContent = "مينفعش تقفلي حسابك أو تغيّري صلاحيتك بنفسك.";
+      return;
+    }
+    try {
+      const updates = {};
+      updates[t(`staff/${editingAccountId}/name`)] = name;
+      updates[t(`staff/${editingAccountId}/role`)] = role;
+      updates[t(`staff/${editingAccountId}/branchId`)] = branchId;
+      updates[t(`staff/${editingAccountId}/active`)] = active;
+      updates[`accounts/${editingAccountId}/name`] = name;
+      updates[`accounts/${editingAccountId}/role`] = role;
+      updates[`accounts/${editingAccountId}/branchId`] = branchId;
+      updates[`accounts/${editingAccountId}/active`] = active;
+      if (u.branchId && u.branchId !== branchId && u.role !== "owner") {
+        updates[t(`branch_users_index/${u.branchId}/${editingAccountId}`)] = null;
+      }
+      updates[t(`branch_users_index/${branchId}/${editingAccountId}`)] = active ? true : null;
+      await update(ref(db), updates);
+      logAudit("update", "staff", editingAccountId, { name, role, branchId, active });
+      closeModal("modal-edit-account");
+      await renderAccountsList();
+      await renderBranchesManagementPanel();
+    } catch (err) {
+      errorBox.textContent = `تعذّر حفظ التعديل (${err.code || err.message}).`;
+      console.error("edit account failed", err);
+    }
   });
 }
 
 function wireSettingsPanel() {
+  wireEditAccountModal();
   document.getElementById("br-add-btn").onclick = async () => {
     const errorBox = document.getElementById("br-error");
     errorBox.textContent = "";
